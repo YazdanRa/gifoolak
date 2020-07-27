@@ -2,7 +2,7 @@ from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, MessageHandler, Filters
 
 from models import User, Gif, Keyword
-from processors.general import error, cancel
+from processors.general import _error, _cancel
 
 GIF, KEYWORD, PUBLIC = range(3)
 
@@ -22,6 +22,13 @@ def get_gif(update: Update, context: CallbackContext):
     except:
         context.bot.send_message(chat_id, 'Please send a Gif!')
         return
+
+    try:
+        gif = Gif.get(Gif.file_id == gif.file_id)
+        context.bot.send_message(chat_id, 'You already stored this gif! Please send another one!')
+        return
+    except:
+        pass
 
     gif = Gif.insert({
         Gif.user: User.get(User.chat_id == chat_id),
@@ -48,7 +55,7 @@ def get_keyword(update: Update, context: CallbackContext):
         return PUBLIC
 
     try:
-        keyword = Keyword.get(Keyword.text == text)
+        keyword = Keyword.get(Keyword.text == text.lower())
         if keyword in gif.keywords:
             context.bot.send_message(chat_id, 'You have already added this keyword!')
         else:
@@ -56,7 +63,7 @@ def get_keyword(update: Update, context: CallbackContext):
             context.bot.send_message(chat_id, 'keyword successfully added!')
     except:
         keyword = Keyword.insert({
-            Keyword.text: text
+            Keyword.text: text.lower()
         }).execute()
         gif.keywords.add(keyword)
         context.bot.send_message(chat_id, 'keyword successfully added!')
@@ -94,9 +101,9 @@ HANDLER = ConversationHandler(
     },
 
     fallbacks=[
-        MessageHandler(Filters.command, cancel),
-        MessageHandler(Filters.text('Cancel'), cancel),
-        MessageHandler(Filters.all, error)
+        MessageHandler(Filters.command, _cancel),
+        MessageHandler(Filters.text('Cancel'), _cancel),
+        MessageHandler(Filters.all, _error)
     ],
 
     allow_reentry=True,

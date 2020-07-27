@@ -2,14 +2,13 @@ import logging
 import os
 from uuid import uuid4
 
-from telegram import (InlineQueryResultArticle, InputTextMessageContent, InlineQueryResultCachedGif)
-from telegram.ext import (Updater, InlineQueryHandler, CommandHandler, MessageHandler, Filters)
+from telegram import InlineQueryResultCachedGif, Update
+from telegram.ext import Updater, InlineQueryHandler, MessageHandler, Filters, CallbackContext
 
 from models import *
-
 # Enable logging
 from processors import add, greetings
-# from processors.general import error
+from processors.general import _error
 from processors.save_data import save_data
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -44,9 +43,9 @@ database.create_tables([
 
 # Define a few command handlers. These usually take the two arguments update and
 # context. Error handlers also receive the raised TelegramError object in error.
-def inlinequery(update, context):
+def inlinequery(update: Update, context: CallbackContext):
     """Handle the inline query."""
-    query = update.inline_query.query
+    query = update.inline_query.query.lower()
 
     results = []
     for keyword in Keyword.select().where(Keyword.text == query):
@@ -79,7 +78,7 @@ def main():
     bot.add_handler(InlineQueryHandler(inlinequery))
 
     # log all errors
-    # bot.add_error_handler(error)
+    bot.add_error_handler(_error)
 
     # Start the Bot
     updater.start_polling()
